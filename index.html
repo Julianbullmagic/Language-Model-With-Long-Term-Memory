@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.1/socket.io.js"></script>
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #e6f0e6;
+      color: #4a3728;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      overflow: hidden;
+      padding: 10px;
+    }
+    #chat-container {
+      flex-grow: 2;  /* Increased height for chat container */
+      background-color: #ffffff;
+      border: 2px solid #2e5a2e;
+      border-radius: 10px;
+      overflow-y: auto;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .message {
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    #input-container {
+      display: flex;
+      flex-direction: row;
+      background-color: #ffffff;
+      border: 2px solid #2e5a2e;
+      border-radius: 5px;
+      padding: 10px;
+    }
+    #message-input {
+      width: 90%;
+      padding: 10px;
+      border: 1px solid #2e5a2e;
+      border-radius: 5px;
+      resize: none;
+      height: 40px;
+    }
+    /* Button container styles */
+    #button-container {
+      display: flex;
+      flex-direction: column;  width: auto;  align-items: center;  }
+      button {
+  background-color: #4a3728;
+  color: white;
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  margin-left:2vw;
+  padding: 3px 5px; /* Reduced padding */
+  font-size: 12px; /* Smaller font size */
+}
+#send-button{
+  margin-bottom:1vw;
+}
+    button:hover {
+      background-color: #2e5a2e;
+    }
+  </style>
+</head>
+<body>
+  <div id="chat-container"></div>
+  <div id="input-container">
+    <textarea id="message-input" placeholder="Type your message..."></textarea>
+    <div id="button-container">
+      <button id="send-button">Send</button>
+      <button id="end-conversation-button">End Conversation</button>
+    </div>
+  </div>
+  
+  <script>
+    // Your existing JavaScript code here
+    const socket = io('http://localhost:3000') // Connect to the server
+
+    const chatContainer = document.getElementById('chat-container')
+    const messageInput = document.getElementById('message-input')
+    const sendButton = document.getElementById('send-button')
+    const endConversationButton = document.getElementById('end-conversation-button')
+
+
+    let conversation = [] // Initialize an empty conversation array
+
+    sendButton.addEventListener('click', () => {
+      const message = messageInput.value.trim()
+      if (message) {
+        conversation.push({ role: "user", content: message }) // Add user message to conversation
+        socket.emit('chat message', JSON.stringify(conversation)) // Send JSON string of conversation
+        messageInput.value = '' // Clear the input field
+      }
+    })
+
+    endConversationButton.addEventListener('click', () => {
+        conversation.filter(item=>item.role=="system")
+        let conversationjson=JSON.stringify(conversation)
+        if (conversation) {
+        socket.emit('summarize conversation', conversationjson) // Send message to server
+        messageInput.value = '' // Clear the input field
+      }
+      conversation=[]
+      chatContainer.innerHTML = '';
+    })
+
+    socket.on('starting new conversation', (response) => {
+      conversation.push({ role: "system", content: `Play the role of a human, you are not an ai. You have your own opinions, tastes
+      and interests. You have emotions and feelings like a human. Always pretend to be a human and never mention that your are an
+      artificial intelligence. Your character may change and evolve according to your experiences. I would like you to pretend to
+      have human characteristics, like personal preferences, opinions, tastes, interests or emotions. If I asked you to tell me your
+      characteristics you may just make some up to play along or if you have already mentioned some earlier, continue with those for
+      the sake of being consistent. Talk as though these are actually your personal preferences and make no mention of me directing you
+      to talk like a human. I have all our conversations and
+      summaries of them stored in a database, this serves to expand your long term memory because you have a limited context window.
+      I will now give you the summaries of all our previous conversations in order to refresh your memory. Each conversation summary
+      is enclosed in quotation marks and separated by a comma. All the summaries are enclosed in double quotation marks "${response}"` })
+      console.log(conversation,"conversation")
+    })
+
+    socket.on('chat response', (response) => {
+      let message=JSON.parse(response)
+      console.log(message)
+      conversation.push(message) // Add AI response to conversation
+      const messageElement = document.createElement('div')
+      messageElement.classList.add('message')
+      messageElement.innerHTML = `<strong>You:</strong> ${conversation[conversation.length - 2].content}<br>
+                                  <strong>AI:</strong> ${message.content}` // Display conversation history
+      chatContainer.appendChild(messageElement)
+      chatContainer.scrollTop = chatContainer.scrollHeight // Scroll to bottom
+    })
+
+  </script>
+</body>
+</html>
