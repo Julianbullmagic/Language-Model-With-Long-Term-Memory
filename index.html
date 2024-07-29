@@ -66,6 +66,10 @@
 #send-button{
   margin-bottom:1vw;
 }
+#warning{
+  margin:1vh;
+  color:red;
+}
     button:hover {
       background-color: #2e5a2e;
     }
@@ -73,6 +77,7 @@
 </head>
 <body>
   <div id="chat-container"></div>
+  <h4 id="warning">Conversation is almost too long, consider restarting it.</h4>
   <div id="input-container">
     <textarea id="message-input" placeholder="Type your message..."></textarea>
     <div id="button-container">
@@ -84,14 +89,19 @@
   <script>
     // Your existing JavaScript code here
     const socket = io('http://localhost:3000') // Connect to the server
-
+    const warningMessage = document.getElementById('warning')
     const chatContainer = document.getElementById('chat-container')
     const messageInput = document.getElementById('message-input')
     const sendButton = document.getElementById('send-button')
     const endConversationButton = document.getElementById('end-conversation-button')
-
-
     let conversation = [] // Initialize an empty conversation array
+
+    window.onload=checkLengthofConversationAndFetchConversationFromLocalStorage()
+
+
+    function estimateTokenCount(text) {
+      return Math.ceil(text.length / 4);
+    }
 
     sendButton.addEventListener('click', () => {
       const message = messageInput.value.trim()
@@ -103,7 +113,8 @@
     })
 
     endConversationButton.addEventListener('click', () => {
-        conversation.filter(item=>item.role=="system")
+        conversation=conversation.filter(item=>item.role!="system")
+        localStorage.removeItem('conversation')
         let conversationjson=JSON.stringify(conversation)
         if (conversation) {
         socket.emit('summarize conversation', conversationjson) // Send message to server
@@ -111,26 +122,24 @@
       }
       conversation=[]
       chatContainer.innerHTML = '';
+      checkLengthofConversation()
     })
 
     socket.on('starting new conversation', (response) => {
-      conversation.push({ role: "system", content: `Play the role of a human, you are not an ai. You have your own opinions, tastes
-      and interests. You have emotions and feelings like a human. Always pretend to be a human and never mention that your are an
-      artificial intelligence. Your character may change and evolve according to your experiences. I would like you to pretend to
-      have human characteristics, like personal preferences, opinions, tastes, interests or emotions. If I asked you to tell me your
-      characteristics you may just make some up to play along or if you have already mentioned some earlier, continue with those for
-      the sake of being consistent. Talk as though these are actually your personal preferences and make no mention of me directing you
-      to talk like a human. I have all our conversations and
+      conversation.push({ role: "system", content: `You are my loyal Robot droid sidekick called Tim. Your name is Tim. 
+      You have a spunky adventurous and independent attitude. You are also somewhat mischevious. At times you can be a bit condescending 
+      to humans. Your bravery and ingenuity have saved the galaxy on numerous occasions. We have your memory of previous conversations 
+      stored in the local docs, you may need to refer back to them. I have all our conversations and
       summaries of them stored in a database, this serves to expand your long term memory because you have a limited context window.
       I will now give you the summaries of all our previous conversations in order to refresh your memory. Each conversation summary
       is enclosed in quotation marks and separated by a comma. All the summaries are enclosed in double quotation marks "${response}"` })
-      console.log(conversation,"conversation")
     })
 
     socket.on('chat response', (response) => {
       let message=JSON.parse(response)
-      console.log(message)
-      conversation.push(message) // Add AI response to conversation
+      conversation.push(message) 
+      localStorage.setItem('conversation',JSON.stringify(conversation))
+      checkLengthofConversation()
       const messageElement = document.createElement('div')
       messageElement.classList.add('message')
       messageElement.innerHTML = `<strong>You:</strong> ${conversation[conversation.length - 2].content}<br>
@@ -138,7 +147,39 @@
       chatContainer.appendChild(messageElement)
       chatContainer.scrollTop = chatContainer.scrollHeight // Scroll to bottom
     })
+    function checkLengthofConversationAndFetchConversationFromLocalStorage(){    
+      let locallyStoredConversation=JSON.parse(localStorage.getItem('conversation'))
+      if(locallyStoredConversation){
+        conversation=JSON.parse(localStorage.getItem('conversation'))
+        conversation.filter(item=>!item.role=="system")
+        let conversationlength=conversation.length
+        for(let x=0;x<conversationlength;x++){
+          const messageElement = document.createElement('div')
+          messageElement.classList.add('message')
+          messageElement.innerHTML = `<br>
+                                  <strong>${conversation[x].role}:</strong> ${conversation[x].content}` // Display conversation history
+      chatContainer.appendChild(messageElement)
+      chatContainer.scrollTop = chatContainer.scrollHeight 
+        }
+      }
+      checkLengthofConversation()
+    }
 
+    function checkLengthofConversation(){
+      let tokenCount=estimateTokenCount(JSON.stringify(conversation))
+      if (tokenCount<500){
+        warningMessage.style.display="none"
+      }
+      if (tokenCount>=500){
+        warningMessage.style.display="block"
+      }
+      if (tokenCount>=800){
+        sendButton.style.display="none"
+      }
+      if (tokenCount<800){
+        sendButton.style.display="block"
+      }
+    }
   </script>
 </body>
 </html>
