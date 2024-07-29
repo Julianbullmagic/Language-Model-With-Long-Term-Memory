@@ -7,6 +7,8 @@ const { createClient } = require('@supabase/supabase-js');
 const supabaseUrl = process.env.SUPABASEURL
 const supabaseAnonKey = process.env.SUPABASEKEY
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const cors = require('cors');
+
 
 async function getSummaries() {
   try {
@@ -34,6 +36,9 @@ let searchengines=["google_maps",
     "duckduckgo","bing","yandex","yahoo","google"
   ]
 const app = express()
+app.use(cors({
+  origin: 'https://language-model-with-long-term-memory-1.onrender.com'  // Allow requests from your client's origin
+}));
 // const port = 3000
 const server = app.listen(process.env.PORT, () => console.log(`Server listening on port ${process.env.PORT}`))
 const io = new Server(server)
