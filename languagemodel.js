@@ -39,10 +39,20 @@ const app = express()
 app.use(cors({
   origin: 'https://language-model-with-long-term-memory-1.onrender.com'  // Allow requests from your client's origin
 }));
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'https://language-model-with-long-term-memory-1.onrender.com');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  next();
+});
 // const port = 3000
 const server = app.listen(process.env.PORT, () => console.log(`Server listening on port ${process.env.PORT}`))
-const io = new Server(server)
-
+const io = new Server(server, {
+  cors: {
+    origin: "https://language-model-with-long-term-memory-1.onrender.com",
+    methods: ["GET", "POST"]
+  }
+});
 let conversationSummariesShort=[]
 let conversationSummariesLong=[]
 let summariesalreadyretrieved=[]
