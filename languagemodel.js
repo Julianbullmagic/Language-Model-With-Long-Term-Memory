@@ -34,8 +34,8 @@ let searchengines=["google_maps",
     "duckduckgo","bing","yandex","yahoo","google"
   ]
 const app = express()
-const port = 3000
-const server = app.listen(port, () => console.log(`Server listening on port ${port}`))
+// const port = 3000
+const server = app.listen(process.env.PORT, () => console.log(`Server listening on port ${process.env.PORT}`))
 const io = new Server(server)
 
 let conversationSummariesShort=[]
@@ -45,7 +45,7 @@ let summariesalreadyretrieved=[]
 
 
 // Serve static files from the 'public' directory (assuming your index.html is there)
-app.use(express.static(path.join(__dirname)))
+// app.use(express.static(path.join(__dirname)))
 
 function estimateTokenCount(text) {
   return Math.ceil(text.length / 4);
