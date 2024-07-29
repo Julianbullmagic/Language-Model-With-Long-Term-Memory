@@ -13,6 +13,7 @@
       background-color: #e6f0e6;
       color: #4a3728;
     }
+
     body {
       display: flex;
       flex-direction: column;
@@ -20,8 +21,9 @@
       overflow: hidden;
       padding: 10px;
     }
+
     #chat-container {
-      flex-grow: 2;  /* Increased height for chat container */
+      flex-grow: 2;
       background-color: #ffffff;
       border: 2px solid #2e5a2e;
       border-radius: 10px;
@@ -29,10 +31,12 @@
       padding: 10px;
       margin-bottom: 10px;
     }
+
     .message {
       margin-bottom: 10px;
       line-height: 1.4;
     }
+
     #input-container {
       display: flex;
       flex-direction: row;
@@ -41,37 +45,62 @@
       border-radius: 5px;
       padding: 10px;
     }
+
     #message-input {
-      width: 90%;
+      flex-grow: 1;
       padding: 10px;
       border: 1px solid #2e5a2e;
       border-radius: 5px;
       resize: none;
       height: 40px;
     }
-    /* Button container styles */
+
     #button-container {
       display: flex;
-      flex-direction: column;  width: auto;  align-items: center;  }
-      button {
-  background-color: #4a3728;
-  color: white;
-  border: none;
-  border-radius: 2px;
-  cursor: pointer;
-  margin-left:2vw;
-  padding: 3px 5px; /* Reduced padding */
-  font-size: 12px; /* Smaller font size */
-}
-#send-button{
-  margin-bottom:1vw;
-}
-#warning{
-  margin:1vh;
-  color:red;
-}
+      flex-direction: row;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    button {
+      background-color: #4a3728;
+      color: white;
+      border: none;
+      border-radius: 2px;
+      cursor: pointer;
+      padding: 3px 5px;
+      font-size: 12px;
+      flex: 1;
+      margin: 0 5px;
+    }
+
+    #warning {
+      margin: 1vh;
+      color: red;
+    }
+
     button:hover {
       background-color: #2e5a2e;
+    }
+
+    @media (max-width: 600px) {
+      #input-container {
+        flex-direction: column;
+      }
+
+      #message-input {
+        width: 100%;
+        margin-bottom: 10px;
+      }
+
+      #button-container {
+        flex-direction: row;
+        justify-content: space-between;
+      }
+
+      button {
+        margin: 0 5px;
+      }
     }
   </style>
 </head>
@@ -87,98 +116,85 @@
   </div>
   
   <script>
-    // Your existing JavaScript code here
-    const socket = io('https://language-model-with-long-term-memory.onrender.com') // Connect to the server
-    const warningMessage = document.getElementById('warning')
-    const chatContainer = document.getElementById('chat-container')
-    const messageInput = document.getElementById('message-input')
-    const sendButton = document.getElementById('send-button')
-    const endConversationButton = document.getElementById('end-conversation-button')
-    let conversation = [] // Initialize an empty conversation array
+    const socket = io('https://language-model-with-long-term-memory.onrender.com');
+    const warningMessage = document.getElementById('warning');
+    const chatContainer = document.getElementById('chat-container');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const endConversationButton = document.getElementById('end-conversation-button');
+    let conversation = [];
 
-    window.onload=checkLengthofConversationAndFetchConversationFromLocalStorage()
-
+    window.onload = checkLengthOfConversationAndFetchFromLocalStorage();
 
     function estimateTokenCount(text) {
       return Math.ceil(text.length / 4);
     }
 
     sendButton.addEventListener('click', () => {
-      const message = messageInput.value.trim()
+      const message = messageInput.value.trim();
       if (message) {
-        conversation.push({ role: "user", content: message }) // Add user message to conversation
-        socket.emit('chat message', JSON.stringify(conversation)) // Send JSON string of conversation
-        messageInput.value = '' // Clear the input field
+        conversation.push({ role: "user", content: message });
+        socket.emit('chat message', JSON.stringify(conversation));
+        messageInput.value = '';
       }
-    })
+    });
 
     endConversationButton.addEventListener('click', () => {
-        conversation=conversation.filter(item=>item.role!="system")
-        localStorage.removeItem('conversation')
-        let conversationjson=JSON.stringify(conversation)
-        if (conversation) {
-        socket.emit('summarize conversation', conversationjson) // Send message to server
-        messageInput.value = '' // Clear the input field
+      conversation = conversation.filter(item => item.role !== "system");
+      localStorage.removeItem('conversation');
+      let conversationjson = JSON.stringify(conversation);
+      if (conversationjson) {
+        socket.emit('summarize conversation', conversationjson);
+        messageInput.value = '';
       }
-      conversation=[]
+      conversation = [];
       chatContainer.innerHTML = '';
-      checkLengthofConversation()
-    })
+      checkLengthOfConversation();
+    });
 
     socket.on('starting new conversation', (response) => {
       conversation.push({ role: "system", content: `You are my loyal Robot droid sidekick called Tim. Your name is Tim. 
-      You have a spunky adventurous and independent attitude. You are also somewhat mischevious. At times you can be a bit condescending 
-      to humans. Your bravery and ingenuity have saved the galaxy on numerous occasions. We have your memory of previous conversations 
-      stored in the local docs, you may need to refer back to them. I have all our conversations and
-      summaries of them stored in a database, this serves to expand your long term memory because you have a limited context window.
-      I will now give you the summaries of all our previous conversations in order to refresh your memory. Each conversation summary
-      is enclosed in quotation marks and separated by a comma. All the summaries are enclosed in double quotation marks "${response}"` })
-    })
+      You have a spunky adventurous and independent attitude. You are also somewhat mischievous. At times you can be a bit condescending 
+      to humans. You are a bit snarky, a bit cheeky and a bit smug, but mostly decent and good. Your bravery and ingenuity have saved 
+      the galaxy on numerous occasions and you often brag about it. We have your memory of previous conversations 
+      stored in a database, you may need to refer back to them. This serves to expand your long term memory because you have a limited 
+      context window. I will now give you the summaries of all our previous conversations in order to refresh your memory, enclosed
+      in double quotation marks "${response}".` });
+    });
 
     socket.on('chat response', (response) => {
-      let message=JSON.parse(response)
-      conversation.push(message) 
-      localStorage.setItem('conversation',JSON.stringify(conversation))
-      checkLengthofConversation()
-      const messageElement = document.createElement('div')
-      messageElement.classList.add('message')
+      let message = JSON.parse(response);
+      conversation.push(message);
+      localStorage.setItem('conversation', JSON.stringify(conversation));
+      checkLengthOfConversation();
+      const messageElement = document.createElement('div');
+      messageElement.classList.add('message');
       messageElement.innerHTML = `<strong>You:</strong> ${conversation[conversation.length - 2].content}<br>
-                                  <strong>AI:</strong> ${message.content}` // Display conversation history
-      chatContainer.appendChild(messageElement)
-      chatContainer.scrollTop = chatContainer.scrollHeight // Scroll to bottom
-    })
-    function checkLengthofConversationAndFetchConversationFromLocalStorage(){    
-      let locallyStoredConversation=JSON.parse(localStorage.getItem('conversation'))
-      if(locallyStoredConversation){
-        conversation=JSON.parse(localStorage.getItem('conversation'))
-        conversation.filter(item=>!item.role=="system")
-        let conversationlength=conversation.length
-        for(let x=0;x<conversationlength;x++){
-          const messageElement = document.createElement('div')
-          messageElement.classList.add('message')
-          messageElement.innerHTML = `<br>
-                                  <strong>${conversation[x].role}:</strong> ${conversation[x].content}` // Display conversation history
-      chatContainer.appendChild(messageElement)
-      chatContainer.scrollTop = chatContainer.scrollHeight 
+                                  <strong>AI:</strong> ${message.content}`;
+      chatContainer.appendChild(messageElement);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    });
+
+    function checkLengthOfConversationAndFetchFromLocalStorage() {
+      let locallyStoredConversation = JSON.parse(localStorage.getItem('conversation'));
+      if (locallyStoredConversation) {
+        conversation = locallyStoredConversation.filter(item => item.role !== "system");
+        let conversationLength = conversation.length;
+        for (let x = 0; x < conversationLength; x++) {
+          const messageElement = document.createElement('div');
+          messageElement.classList.add('message');
+          messageElement.textContent = `${conversation[x].role}: ${conversation[x].content}`;
+          chatContainer.appendChild(messageElement);
+          chatContainer.scrollTop = chatContainer.scrollHeight;
         }
       }
-      checkLengthofConversation()
+      checkLengthOfConversation();
     }
 
-    function checkLengthofConversation(){
-      let tokenCount=estimateTokenCount(JSON.stringify(conversation))
-      if (tokenCount<500){
-        warningMessage.style.display="none"
-      }
-      if (tokenCount>=500){
-        warningMessage.style.display="block"
-      }
-      if (tokenCount>=800){
-        sendButton.style.display="none"
-      }
-      if (tokenCount<800){
-        sendButton.style.display="block"
-      }
+    function checkLengthOfConversation() {
+      let tokenCount = estimateTokenCount(JSON.stringify(conversation));
+      warningMessage.style.display = tokenCount >= 10000 ? "block" : "none";
+      sendButton.style.display = tokenCount < 16000 ? "block" : "none";
     }
   </script>
 </body>
